@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiques - SecureShare</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icônes SVG
+        const Activity = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        );
+
+        const Database = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+        );
+
+        const Clock = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        );
+
+        const Cpu = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+            <line x1="9" y1="1" x2="9" y2="4"/>
+            <line x1="15" y1="1" x2="15" y2="4"/>
+            <line x1="9" y1="20" x2="9" y2="23"/>
+            <line x1="15" y1="20" x2="15" y2="23"/>
+            <line x1="20" y1="9" x2="23" y2="9"/>
+            <line x1="20" y1="14" x2="23" y2="14"/>
+            <line x1="1" y1="9" x2="4" y2="9"/>
+            <line x1="1" y1="14" x2="4" y2="14"/>
+          </svg>
+        );
+
+        const Shield = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        );
+
+        const Server = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+            <line x1="6" y1="6" x2="6.01" y2="6"/>
+            <line x1="6" y1="18" x2="6.01" y2="18"/>
+          </svg>
+        );
+
+        const Home = () => (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        );
+
+        const Trash = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        );
+
+        const StatsPage = () => {
+          const [stats, setStats] = useState(null);
+          const [loading, setLoading] = useState(true);
+          const [error, setError] = useState(null);
+          const [autoRefresh, setAutoRefresh] = useState(true);
+
+          const fetchStats = async () => {
+            try {
+              const response = await fetch('/api/stats');
+              if (!response.ok) throw new Error('Erreur de récupération');
+              const data = await response.json();
+              setStats(data);
+              setError(null);
+            } catch (err) {
+              setError(err.message);
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          useEffect(() => {
+            fetchStats();
+            
+            if (autoRefresh) {
+              const interval = setInterval(fetchStats, 5000);
+              return () => clearInterval(interval);
+            }
+          }, [autoRefresh]);
+
+          const formatBytes = (bytes) => {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+          };
+
+          const formatUptime = (seconds) => {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            let result = [];
+            if (days > 0) result.push(`${days}j`);
+            if (hours > 0) result.push(`${hours}h`);
+            if (minutes > 0) result.push(`${minutes}m`);
+            if (secs > 0 || result.length === 0) result.push(`${secs}s`);
+            
+            return result.join(' ');
+          };
+
+          const getMemoryPercentage = () => {
+            if (!stats) return 0;
+            return ((stats.memoryUsage.heapUsed / stats.memoryUsage.heapTotal) * 100).toFixed(1);
+          };
+
+          if (loading && !stats) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin text-blue-400 mb-4 flex justify-center">
+                    <Activity />
+                  </div>
+                  <p className="text-slate-300">Chargement des statistiques...</p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+              <div className="max-w-6xl mx-auto py-8">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                      <Activity className="text-blue-400" />
+                      Statistiques SecureShare
+                    </h1>
+                    <p className="text-slate-300">Surveillance en temps réel du serveur</p>
+                  </div>
+                  <a 
+                    href="/" 
+                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <Home />
+                    Retour
+                  </a>
+                </div>
+
+                {/* Auto-refresh toggle */}
+                <div className="bg-slate-800 rounded-lg p-4 mb-6 flex items-center justify-between">
+                  <span className="text-slate-300">Actualisation automatique (5s)</span>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoRefresh}
+                      onChange={(e) => setAutoRefresh(e.target.checked)}
+                      className="w-5 h-5 rounded bg-slate-700 border-slate-600 text-blue-600 focus:ring-blue-500"
+                    />
+                  </label>
+                </div>
+
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
+                    <p className="text-red-400">❌ Erreur: {error}</p>
+                  </div>
+                )}
+
+                {stats && (
+                  <>
+                    {/* Cartes principales */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                      {/* Secrets actifs */}
+                      <div className="bg-slate-800 rounded-xl p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="p-3 bg-blue-500/20 rounded-lg">
+                            <Shield className="text-blue-400" />
+                          </div>
+                          <span className="text-4xl font-bold text-white">{stats.activeSecrets}</span>
+                        </div>
+                        <h3 className="text-slate-300 font-medium">Secrets actifs</h3>
+                        <p className="text-xs text-slate-500 mt-1">Mots de passe en mémoire</p>
+                      </div>
+
+                      {/* Uptime */}
+                      <div className="bg-slate-800 rounded-xl p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="p-3 bg-green-500/20 rounded-lg">
+                            <Clock className="text-green-400" />
+                          </div>
+                          <span className="text-2xl font-bold text-white">{formatUptime(stats.uptime)}</span>
+                        </div>
+                        <h3 className="text-slate-300 font-medium">Temps de fonctionnement</h3>
+                        <p className="text-xs text-slate-500 mt-1">Depuis le dernier démarrage</p>
+                      </div>
+
+                      {/* Secrets expirés */}
+                      <div className="bg-slate-800 rounded-xl p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="p-3 bg-orange-500/20 rounded-lg">
+                            <Trash className="text-orange-400" />
+                          </div>
+                          <span className="text-4xl font-bold text-white">{stats.expiredSecrets || 0}</span>
+                        </div>
+                        <h3 className="text-slate-300 font-medium">Secrets expirés</h3>
+                        <p className="text-xs text-slate-500 mt-1">En attente de nettoyage</p>
+                      </div>
+                    </div>
+
+                    {/* Utilisation mémoire */}
+                    <div className="bg-slate-800 rounded-xl p-6 shadow-2xl mb-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Cpu className="text-purple-400" />
+                        <h2 className="text-2xl font-bold text-white">Utilisation mémoire</h2>
+                      </div>
+
+                      {/* Barre de progression */}
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm text-slate-300 mb-2">
+                          <span>Heap utilisé</span>
+                          <span>{getMemoryPercentage()}%</span>
+                        </div>
+                        <div className="w-full bg-slate-700 rounded-full h-4 overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-500 ${
+                              getMemoryPercentage() > 80 ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+                              getMemoryPercentage() > 60 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                              'bg-gradient-to-r from-blue-500 to-purple-500'
+                            }`}
+                            style={{ width: `${getMemoryPercentage()}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Détails mémoire */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-xs text-slate-500 mb-1">RSS</p>
+                          <p className="text-lg font-bold text-white">{formatBytes(stats.memoryUsage.rss)}</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-xs text-slate-500 mb-1">Heap Total</p>
+                          <p className="text-lg font-bold text-white">{formatBytes(stats.memoryUsage.heapTotal)}</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-xs text-slate-500 mb-1">Heap Utilisé</p>
+                          <p className="text-lg font-bold text-white">{formatBytes(stats.memoryUsage.heapUsed)}</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-xs text-slate-500 mb-1">External</p>
+                          <p className="text-lg font-bold text-white">{formatBytes(stats.memoryUsage.external)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Informations système */}
+                    <div className="bg-slate-800 rounded-xl p-6 shadow-2xl">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Database className="text-cyan-400" />
+                        <h2 className="text-2xl font-bold text-white">Informations système</h2>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-sm text-slate-400 mb-2">Version Node.js</p>
+                          <p className="text-lg font-mono text-white">{stats.nodeVersion || 'N/A'}</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-sm text-slate-400 mb-2">Plateforme</p>
+                          <p className="text-lg font-mono text-white">{stats.platform || navigator.platform}</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-sm text-slate-400 mb-2">Process ID</p>
+                          <p className="text-lg font-mono text-white">{stats.pid || 'N/A'}</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-sm text-slate-400 mb-2">Environnement</p>
+                          <p className="text-lg font-mono text-white">{stats.environment || 'production'}</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-sm text-slate-400 mb-2">Type de stockage</p>
+                          <p className="text-lg font-mono text-white">RAM (volatile)</p>
+                        </div>
+                        <div className="bg-slate-900 rounded-lg p-4">
+                          <p className="text-sm text-slate-400 mb-2">Total secrets</p>
+                          <p className="text-lg font-mono text-white">{stats.totalSecrets || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer info */}
+                    <div className="mt-6 text-center text-sm text-slate-500">
+                      Dernière mise à jour : {new Date().toLocaleTimeString('fr-FR')}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<StatsPage />, document.getElementById('root'));
+    </script>
+</body>
+</html>
